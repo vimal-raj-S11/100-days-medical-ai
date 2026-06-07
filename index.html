@@ -1,0 +1,1736 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Health Risk Assessment AI</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800;900&family=DM+Serif+Display:ital@0;1&display=swap" rel="stylesheet">
+<style>
+/* ============================================================
+   DESIGN TOKENS & RESET
+   ============================================================ */
+:root {
+  --font-display: 'DM Serif Display', serif;
+  --font-body: 'Outfit', sans-serif;
+
+  /* Light Theme */
+  --bg-primary: #f0f4f8;
+  --bg-secondary: #ffffff;
+  --bg-card: rgba(255,255,255,0.85);
+  --bg-glass: rgba(255,255,255,0.6);
+  --border: rgba(0,0,0,0.08);
+  --border-glass: rgba(255,255,255,0.5);
+  --text-primary: #0d1117;
+  --text-secondary: #4a5568;
+  --text-muted: #718096;
+  --accent-primary: #0a84ff;
+  --accent-secondary: #30d158;
+  --accent-warn: #ff9f0a;
+  --accent-danger: #ff453a;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.06);
+  --shadow-md: 0 8px 32px rgba(0,0,0,0.10);
+  --shadow-lg: 0 24px 64px rgba(0,0,0,0.14);
+  --mesh-1: #e0eaff;
+  --mesh-2: #d4f5e2;
+  --mesh-3: #fff3cd;
+  --input-bg: rgba(255,255,255,0.9);
+  --nav-bg: rgba(255,255,255,0.75);
+}
+
+[data-theme="dark"] {
+  --bg-primary: #080c14;
+  --bg-secondary: #0f1623;
+  --bg-card: rgba(15,22,35,0.85);
+  --bg-glass: rgba(15,22,35,0.65);
+  --border: rgba(255,255,255,0.07);
+  --border-glass: rgba(255,255,255,0.12);
+  --text-primary: #f0f4ff;
+  --text-secondary: #8fa3bf;
+  --text-muted: #5a7391;
+  --accent-primary: #2997ff;
+  --accent-secondary: #32d74b;
+  --accent-warn: #ffd60a;
+  --accent-danger: #ff6961;
+  --shadow-sm: 0 2px 8px rgba(0,0,0,0.4);
+  --shadow-md: 0 8px 32px rgba(0,0,0,0.5);
+  --shadow-lg: 0 24px 64px rgba(0,0,0,0.6);
+  --mesh-1: #0a1628;
+  --mesh-2: #071a0f;
+  --mesh-3: #1a1200;
+  --input-bg: rgba(255,255,255,0.05);
+  --nav-bg: rgba(8,12,20,0.85);
+}
+
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{
+  font-family:var(--font-body);
+  background:var(--bg-primary);
+  color:var(--text-primary);
+  min-height:100vh;
+  overflow-x:hidden;
+  transition:background 0.4s ease, color 0.4s ease;
+}
+
+/* ============================================================
+   LOADING SCREEN
+   ============================================================ */
+#loader{
+  position:fixed;inset:0;z-index:9999;
+  background:var(--bg-primary);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;
+  gap:24px;
+  transition:opacity 0.6s ease, visibility 0.6s ease;
+}
+#loader.hidden{opacity:0;visibility:hidden;pointer-events:none}
+.loader-heart{
+  width:64px;height:64px;
+  position:relative;
+  animation:heartbeat 1.2s ease-in-out infinite;
+}
+.loader-heart svg{width:100%;height:100%}
+@keyframes heartbeat{
+  0%,100%{transform:scale(1)}
+  14%{transform:scale(1.15)}
+  28%{transform:scale(1)}
+  42%{transform:scale(1.2)}
+  70%{transform:scale(1)}
+}
+.loader-bar{
+  width:200px;height:3px;
+  background:var(--border);
+  border-radius:99px;
+  overflow:hidden;
+}
+.loader-bar-fill{
+  height:100%;width:0%;
+  background:linear-gradient(90deg,var(--accent-primary),var(--accent-secondary));
+  border-radius:99px;
+  animation:loadfill 1.8s ease forwards;
+}
+@keyframes loadfill{to{width:100%}}
+.loader-text{
+  font-size:14px;font-weight:500;
+  color:var(--text-muted);
+  letter-spacing:0.05em;
+}
+
+/* ============================================================
+   BACKGROUND MESH
+   ============================================================ */
+.bg-mesh{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+  overflow:hidden;
+}
+.bg-mesh::before{
+  content:'';position:absolute;
+  width:700px;height:700px;border-radius:50%;
+  background:radial-gradient(circle,rgba(10,132,255,0.12) 0%,transparent 70%);
+  top:-200px;left:-200px;
+  animation:drift 18s ease-in-out infinite alternate;
+}
+.bg-mesh::after{
+  content:'';position:absolute;
+  width:600px;height:600px;border-radius:50%;
+  background:radial-gradient(circle,rgba(48,209,88,0.1) 0%,transparent 70%);
+  bottom:-150px;right:-150px;
+  animation:drift 22s ease-in-out infinite alternate-reverse;
+}
+.bg-mesh-extra{
+  position:fixed;inset:0;z-index:0;pointer-events:none;
+}
+.bg-mesh-extra::before{
+  content:'';position:absolute;
+  width:400px;height:400px;border-radius:50%;
+  background:radial-gradient(circle,rgba(255,159,10,0.06) 0%,transparent 70%);
+  top:40%;left:50%;transform:translate(-50%,-50%);
+  animation:drift 26s ease-in-out infinite;
+}
+@keyframes drift{
+  0%{transform:translate(0,0) scale(1)}
+  100%{transform:translate(60px,40px) scale(1.1)}
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+nav{
+  position:fixed;top:0;left:0;right:0;z-index:100;
+  background:var(--nav-bg);
+  backdrop-filter:blur(20px) saturate(180%);
+  -webkit-backdrop-filter:blur(20px) saturate(180%);
+  border-bottom:1px solid var(--border);
+  padding:0 24px;
+  height:64px;
+  display:flex;align-items:center;justify-content:space-between;
+  transition:all 0.3s ease;
+}
+.nav-logo{
+  display:flex;align-items:center;gap:10px;
+  font-family:var(--font-display);font-size:20px;
+  color:var(--text-primary);text-decoration:none;
+}
+.nav-logo-icon{
+  width:36px;height:36px;
+  background:linear-gradient(135deg,var(--accent-primary),var(--accent-secondary));
+  border-radius:10px;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+  box-shadow:0 4px 12px rgba(10,132,255,0.3);
+}
+.nav-actions{display:flex;align-items:center;gap:12px}
+.nav-links{display:flex;align-items:center;gap:4px}
+.nav-link{
+  padding:8px 14px;border-radius:8px;
+  font-size:14px;font-weight:500;
+  color:var(--text-secondary);
+  cursor:pointer;border:none;background:none;
+  transition:all 0.2s ease;
+}
+.nav-link:hover{background:var(--border);color:var(--text-primary)}
+.nav-link.active{background:rgba(10,132,255,0.12);color:var(--accent-primary)}
+.btn-theme{
+  width:40px;height:40px;border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--bg-glass);
+  cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+  font-size:18px;
+  transition:all 0.2s ease;
+  color:var(--text-primary);
+}
+.btn-theme:hover{transform:scale(1.05);box-shadow:var(--shadow-sm)}
+.hamburger{
+  display:none;
+  width:40px;height:40px;border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--bg-glass);
+  cursor:pointer;align-items:center;justify-content:center;flex-direction:column;gap:5px;
+}
+.hamburger span{
+  width:18px;height:2px;
+  background:var(--text-primary);border-radius:2px;
+  transition:all 0.3s ease;display:block;
+}
+
+/* ============================================================
+   WRAPPER & SECTIONS
+   ============================================================ */
+.wrapper{position:relative;z-index:1}
+section{
+  min-height:100vh;padding:100px 24px 60px;
+  display:none;
+}
+section.active{display:block}
+.container{max-width:1100px;margin:0 auto}
+
+/* ============================================================
+   HERO SECTION
+   ============================================================ */
+#hero{
+  display:flex;align-items:center;justify-content:center;
+  text-align:center;padding-top:120px;
+}
+.hero-content{max-width:720px}
+.hero-badge{
+  display:inline-flex;align-items:center;gap:8px;
+  padding:8px 18px;border-radius:99px;
+  background:rgba(10,132,255,0.1);
+  border:1px solid rgba(10,132,255,0.25);
+  font-size:13px;font-weight:600;letter-spacing:0.05em;
+  color:var(--accent-primary);
+  margin-bottom:28px;
+  animation:fadeUp 0.8s ease both;
+}
+.hero-badge-dot{
+  width:8px;height:8px;border-radius:50%;
+  background:var(--accent-secondary);
+  animation:pulse 2s ease infinite;
+}
+@keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:0.5;transform:scale(0.8)}}
+.hero-title{
+  font-family:var(--font-display);
+  font-size:clamp(42px,7vw,80px);
+  line-height:1.08;letter-spacing:-0.02em;
+  margin-bottom:20px;
+  animation:fadeUp 0.8s ease 0.1s both;
+}
+.hero-title span{
+  background:linear-gradient(135deg,var(--accent-primary) 0%,var(--accent-secondary) 100%);
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.hero-subtitle{
+  font-size:18px;line-height:1.6;
+  color:var(--text-secondary);max-width:560px;margin:0 auto 40px;
+  animation:fadeUp 0.8s ease 0.2s both;
+}
+.hero-actions{
+  display:flex;align-items:center;justify-content:center;gap:16px;
+  flex-wrap:wrap;
+  animation:fadeUp 0.8s ease 0.3s both;
+}
+.btn-primary{
+  padding:14px 32px;border-radius:12px;
+  background:linear-gradient(135deg,var(--accent-primary),#0066cc);
+  color:#fff;font-weight:600;font-size:16px;
+  border:none;cursor:pointer;
+  box-shadow:0 8px 24px rgba(10,132,255,0.35);
+  transition:all 0.3s ease;
+  position:relative;overflow:hidden;
+}
+.btn-primary::before{
+  content:'';position:absolute;inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.15),transparent);
+  opacity:0;transition:opacity 0.2s;
+}
+.btn-primary:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(10,132,255,0.45)}
+.btn-primary:hover::before{opacity:1}
+.btn-secondary{
+  padding:14px 32px;border-radius:12px;
+  background:var(--bg-glass);
+  backdrop-filter:blur(12px);
+  border:1px solid var(--border-glass);
+  color:var(--text-primary);font-weight:600;font-size:16px;
+  cursor:pointer;transition:all 0.3s ease;
+}
+.btn-secondary:hover{background:var(--bg-card);transform:translateY(-2px);box-shadow:var(--shadow-md)}
+
+.hero-stats{
+  display:flex;align-items:center;justify-content:center;gap:48px;
+  margin-top:64px;padding-top:48px;
+  border-top:1px solid var(--border);
+  animation:fadeUp 0.8s ease 0.4s both;
+  flex-wrap:wrap;gap:32px;
+}
+.hero-stat{text-align:center}
+.hero-stat-value{
+  font-family:var(--font-display);font-size:36px;
+  background:linear-gradient(135deg,var(--accent-primary),var(--accent-secondary));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text;
+}
+.hero-stat-label{font-size:13px;color:var(--text-muted);margin-top:4px;font-weight:500}
+
+.hero-features{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:16px;margin-top:48px;
+  animation:fadeUp 0.8s ease 0.5s both;
+}
+.hero-feature{
+  padding:20px;border-radius:16px;
+  background:var(--bg-glass);
+  backdrop-filter:blur(12px);
+  border:1px solid var(--border);
+  text-align:left;
+  transition:all 0.3s ease;
+}
+.hero-feature:hover{transform:translateY(-4px);box-shadow:var(--shadow-md)}
+.hero-feature-icon{font-size:24px;margin-bottom:10px}
+.hero-feature-title{font-weight:600;font-size:14px;margin-bottom:4px}
+.hero-feature-desc{font-size:13px;color:var(--text-muted);line-height:1.5}
+
+@keyframes fadeUp{
+  from{opacity:0;transform:translateY(24px)}
+  to{opacity:1;transform:translateY(0)}
+}
+
+/* ============================================================
+   ASSESSMENT FORM
+   ============================================================ */
+#assessment{display:block}
+.section-header{text-align:center;margin-bottom:48px}
+.section-tag{
+  display:inline-block;padding:6px 16px;border-radius:99px;
+  background:rgba(10,132,255,0.1);border:1px solid rgba(10,132,255,0.2);
+  font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--accent-primary);margin-bottom:16px;
+}
+.section-title{
+  font-family:var(--font-display);font-size:clamp(32px,5vw,52px);
+  line-height:1.1;margin-bottom:14px;
+}
+.section-subtitle{font-size:16px;color:var(--text-secondary);max-width:500px;margin:0 auto}
+
+.form-card{
+  background:var(--bg-card);
+  backdrop-filter:blur(20px);
+  border:1px solid var(--border);
+  border-radius:24px;
+  padding:40px;
+  box-shadow:var(--shadow-lg);
+  transition:all 0.4s ease;
+}
+
+.form-section-title{
+  font-size:14px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;
+  color:var(--accent-primary);margin-bottom:24px;padding-bottom:12px;
+  border-bottom:1px solid var(--border);
+  display:flex;align-items:center;gap:8px;
+}
+.form-grid{
+  display:grid;gap:20px;
+  grid-template-columns:repeat(auto-fit,minmax(220px,1fr));
+  margin-bottom:32px;
+}
+.form-group{display:flex;flex-direction:column;gap:8px}
+.form-label{
+  font-size:13px;font-weight:600;color:var(--text-secondary);
+  display:flex;align-items:center;gap:6px;
+}
+.form-label .req{color:var(--accent-danger);font-size:10px}
+.form-input,.form-select,.form-textarea{
+  width:100%;padding:12px 16px;
+  border-radius:10px;border:1px solid var(--border);
+  background:var(--input-bg);
+  color:var(--text-primary);
+  font-family:var(--font-body);font-size:15px;
+  transition:all 0.2s ease;
+  outline:none;
+  backdrop-filter:blur(8px);
+}
+.form-input:focus,.form-select:focus,.form-textarea:focus{
+  border-color:var(--accent-primary);
+  box-shadow:0 0 0 3px rgba(10,132,255,0.15);
+}
+.form-input::placeholder{color:var(--text-muted)}
+.form-select option{background:var(--bg-secondary);color:var(--text-primary)}
+.form-textarea{resize:vertical;min-height:90px}
+
+.bmi-display{
+  padding:16px;border-radius:12px;
+  background:linear-gradient(135deg,rgba(10,132,255,0.08),rgba(48,209,88,0.08));
+  border:1px solid rgba(10,132,255,0.2);
+  display:flex;align-items:center;justify-content:space-between;
+  gap:12px;flex-wrap:wrap;
+  transition:all 0.3s ease;
+}
+.bmi-value{font-family:var(--font-display);font-size:32px;color:var(--accent-primary)}
+.bmi-category{
+  padding:4px 12px;border-radius:99px;font-size:13px;font-weight:700;
+  background:var(--border);color:var(--text-secondary);
+  transition:all 0.3s ease;
+}
+.bmi-category.underweight{background:rgba(10,132,255,0.15);color:var(--accent-primary)}
+.bmi-category.normal{background:rgba(48,209,88,0.15);color:var(--accent-secondary)}
+.bmi-category.overweight{background:rgba(255,159,10,0.15);color:var(--accent-warn)}
+.bmi-category.obese{background:rgba(255,69,58,0.15);color:var(--accent-danger)}
+
+/* Toggle switch */
+.toggle-grid{
+  display:grid;gap:16px;
+  grid-template-columns:repeat(auto-fit,minmax(180px,1fr));
+  margin-bottom:32px;
+}
+.toggle-item{
+  padding:16px;border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--input-bg);
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  cursor:pointer;transition:all 0.2s ease;
+}
+.toggle-item:hover{border-color:var(--accent-primary);background:rgba(10,132,255,0.05)}
+.toggle-item.checked{border-color:var(--accent-primary);background:rgba(10,132,255,0.08)}
+.toggle-label-wrap{display:flex;flex-direction:column;gap:2px}
+.toggle-label{font-size:14px;font-weight:600}
+.toggle-sublabel{font-size:12px;color:var(--text-muted)}
+.toggle-switch{
+  width:44px;height:24px;border-radius:99px;
+  background:var(--border);position:relative;
+  flex-shrink:0;transition:background 0.3s ease;
+}
+.toggle-switch::after{
+  content:'';position:absolute;
+  top:3px;left:3px;
+  width:18px;height:18px;border-radius:50%;
+  background:#fff;transition:transform 0.3s ease;
+  box-shadow:0 2px 4px rgba(0,0,0,0.2);
+}
+.toggle-item.checked .toggle-switch{background:var(--accent-primary)}
+.toggle-item.checked .toggle-switch::after{transform:translateX(20px)}
+
+.range-group{display:flex;flex-direction:column;gap:8px}
+.range-header{display:flex;justify-content:space-between;align-items:center}
+.range-value{
+  font-weight:700;font-size:16px;color:var(--accent-primary);
+  min-width:60px;text-align:right;
+}
+.form-range{
+  width:100%;height:6px;border-radius:99px;
+  -webkit-appearance:none;appearance:none;
+  background:var(--border);outline:none;cursor:pointer;
+}
+.form-range::-webkit-slider-thumb{
+  -webkit-appearance:none;
+  width:20px;height:20px;border-radius:50%;
+  background:linear-gradient(135deg,var(--accent-primary),#0066cc);
+  box-shadow:0 2px 8px rgba(10,132,255,0.4);
+  transition:transform 0.2s ease;
+}
+.form-range::-webkit-slider-thumb:hover{transform:scale(1.2)}
+.range-labels{display:flex;justify-content:space-between;font-size:11px;color:var(--text-muted);margin-top:4px}
+
+.form-actions{
+  display:flex;align-items:center;gap:16px;flex-wrap:wrap;
+  padding-top:24px;border-top:1px solid var(--border);
+}
+.btn-submit{
+  flex:1;min-width:200px;
+  padding:16px 32px;border-radius:12px;
+  background:linear-gradient(135deg,var(--accent-primary),#0066cc);
+  color:#fff;font-weight:700;font-size:16px;
+  border:none;cursor:pointer;
+  box-shadow:0 8px 24px rgba(10,132,255,0.35);
+  transition:all 0.3s ease;
+  display:flex;align-items:center;justify-content:center;gap:10px;
+}
+.btn-submit:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(10,132,255,0.45)}
+.btn-reset{
+  padding:16px 24px;border-radius:12px;
+  border:1px solid var(--border);
+  background:var(--bg-glass);
+  color:var(--text-secondary);font-weight:600;font-size:15px;
+  cursor:pointer;transition:all 0.2s ease;
+}
+.btn-reset:hover{background:rgba(255,69,58,0.1);border-color:var(--accent-danger);color:var(--accent-danger)}
+
+/* ============================================================
+   ALERT BANNER
+   ============================================================ */
+.alert-banner{
+  display:none;padding:16px 20px;border-radius:12px;
+  background:rgba(255,69,58,0.1);border:1px solid rgba(255,69,58,0.3);
+  color:var(--accent-danger);
+  font-weight:600;font-size:14px;
+  margin-bottom:24px;
+  animation:fadeUp 0.5s ease;
+  display:flex;align-items:center;gap:12px;
+}
+.alert-banner.show{display:flex}
+.alert-icon{font-size:20px;flex-shrink:0}
+
+/* ============================================================
+   RESULTS SECTION
+   ============================================================ */
+#results{background:var(--bg-primary);min-height:100vh;display:none;padding:100px 24px 60px}
+#results.active{display:block}
+
+.results-header{
+  display:flex;align-items:center;justify-content:space-between;
+  flex-wrap:wrap;gap:16px;margin-bottom:40px;
+}
+.results-title{font-family:var(--font-display);font-size:clamp(28px,4vw,44px)}
+.results-actions{display:flex;gap:12px;flex-wrap:wrap}
+.btn-action{
+  padding:10px 20px;border-radius:10px;
+  border:1px solid var(--border);
+  background:var(--bg-glass);
+  color:var(--text-primary);font-weight:600;font-size:13px;
+  cursor:pointer;transition:all 0.2s ease;
+  display:flex;align-items:center;gap:8px;
+  backdrop-filter:blur(8px);
+}
+.btn-action:hover{background:var(--bg-card);box-shadow:var(--shadow-sm)}
+.btn-action.primary{
+  background:linear-gradient(135deg,var(--accent-primary),#0066cc);
+  color:#fff;border-color:transparent;
+  box-shadow:0 4px 16px rgba(10,132,255,0.3);
+}
+.btn-action.primary:hover{transform:translateY(-1px);box-shadow:0 8px 24px rgba(10,132,255,0.4)}
+
+.results-grid{
+  display:grid;gap:20px;
+  grid-template-columns:repeat(12,1fr);
+}
+.card{
+  background:var(--bg-card);
+  backdrop-filter:blur(20px);
+  border:1px solid var(--border);
+  border-radius:20px;padding:28px;
+  box-shadow:var(--shadow-md);
+  transition:all 0.3s ease;
+}
+.card:hover{transform:translateY(-2px);box-shadow:var(--shadow-lg)}
+
+.card-risk-meter{grid-column:span 4}
+.card-overview{grid-column:span 8}
+.card-bmi{grid-column:span 4}
+.card-summary{grid-column:span 8}
+.card-recs{grid-column:span 12}
+.card-tips{grid-column:span 12}
+
+.card-label{
+  font-size:12px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;
+  color:var(--text-muted);margin-bottom:20px;
+  display:flex;align-items:center;gap:6px;
+}
+.card-label::before{
+  content:'';width:3px;height:14px;
+  background:linear-gradient(var(--accent-primary),var(--accent-secondary));
+  border-radius:2px;
+}
+
+/* Risk Meter */
+.meter-wrap{display:flex;flex-direction:column;align-items:center;gap:16px}
+.meter-svg{width:180px;height:180px}
+.meter-score{
+  font-family:var(--font-display);font-size:52px;
+  text-align:center;line-height:1;
+}
+.meter-label{
+  font-size:20px;font-weight:700;text-align:center;
+  padding:8px 20px;border-radius:99px;
+  transition:all 0.3s ease;
+}
+.meter-label.low{background:rgba(48,209,88,0.15);color:var(--accent-secondary)}
+.meter-label.medium{background:rgba(255,215,0,0.15);color:var(--accent-warn)}
+.meter-label.high{background:rgba(255,69,58,0.15);color:var(--accent-danger)}
+
+/* Overview stats */
+.overview-grid{
+  display:grid;grid-template-columns:repeat(3,1fr);gap:16px;
+}
+.overview-stat{
+  padding:16px;border-radius:12px;
+  background:var(--input-bg);
+  border:1px solid var(--border);
+  text-align:center;
+}
+.overview-stat-value{
+  font-family:var(--font-display);font-size:28px;
+  margin-bottom:4px;
+}
+.overview-stat-label{font-size:12px;color:var(--text-muted);font-weight:500}
+
+/* BMI Card */
+.bmi-meter{
+  display:flex;flex-direction:column;align-items:center;gap:12px;
+}
+.bmi-arc{width:120px;height:60px;position:relative;overflow:visible}
+.bmi-big-value{
+  font-family:var(--font-display);font-size:42px;text-align:center;
+  line-height:1;margin-bottom:4px;
+}
+.bmi-cat-badge{
+  display:inline-block;padding:6px 16px;border-radius:99px;
+  font-size:13px;font-weight:700;text-align:center;
+}
+.bmi-bar-wrap{width:100%;margin-top:8px}
+.bmi-bar{
+  height:8px;border-radius:99px;
+  background:linear-gradient(90deg,#2997ff 0%,#32d74b 30%,#ffd60a 60%,#ff6961 100%);
+  position:relative;margin-bottom:4px;
+}
+.bmi-indicator{
+  width:14px;height:14px;border-radius:50%;
+  background:#fff;border:3px solid var(--accent-primary);
+  position:absolute;top:-3px;
+  transform:translateX(-50%);
+  transition:left 0.8s cubic-bezier(.34,1.56,.64,1);
+  box-shadow:0 2px 8px rgba(0,0,0,0.3);
+}
+.bmi-bar-labels{
+  display:flex;justify-content:space-between;
+  font-size:10px;color:var(--text-muted);font-weight:500;
+}
+
+/* Summary */
+.summary-text{
+  font-size:15px;line-height:1.7;color:var(--text-secondary);
+  background:var(--input-bg);border:1px solid var(--border);
+  border-radius:12px;padding:20px;
+  position:relative;overflow:hidden;
+}
+.summary-text::before{
+  content:'';position:absolute;left:0;top:0;bottom:0;width:3px;
+  background:linear-gradient(var(--accent-primary),var(--accent-secondary));
+}
+
+/* Recommendations */
+.recs-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));
+  gap:16px;
+}
+.rec-item{
+  padding:20px;border-radius:14px;
+  border:1px solid var(--border);background:var(--input-bg);
+  display:flex;align-items:flex-start;gap:14px;
+  transition:all 0.2s ease;
+}
+.rec-item:hover{border-color:var(--accent-primary);background:rgba(10,132,255,0.04)}
+.rec-icon{
+  width:40px;height:40px;border-radius:10px;flex-shrink:0;
+  background:rgba(10,132,255,0.12);
+  display:flex;align-items:center;justify-content:center;
+  font-size:20px;
+}
+.rec-text{font-size:14px;line-height:1.5;color:var(--text-secondary)}
+.rec-text strong{display:block;font-size:15px;color:var(--text-primary);margin-bottom:2px}
+
+/* Health Tips */
+.tips-grid{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));
+  gap:14px;
+}
+.tip-item{
+  padding:18px;border-radius:12px;
+  background:var(--input-bg);border:1px solid var(--border);
+  text-align:center;
+  animation:fadeUp 0.5s ease both;
+  transition:all 0.2s ease;
+}
+.tip-item:hover{transform:translateY(-3px);box-shadow:var(--shadow-md)}
+.tip-icon{font-size:28px;margin-bottom:8px}
+.tip-text{font-size:13px;line-height:1.5;color:var(--text-secondary)}
+
+/* ============================================================
+   HISTORY SECTION
+   ============================================================ */
+#history{display:none}
+#history.active{display:block}
+.history-controls{
+  display:flex;align-items:center;gap:12px;margin-bottom:24px;
+  flex-wrap:wrap;
+}
+.history-empty{
+  text-align:center;padding:60px 24px;
+  color:var(--text-muted);
+}
+.history-empty-icon{font-size:48px;margin-bottom:16px}
+.history-list{display:flex;flex-direction:column;gap:16px}
+.history-item{
+  background:var(--bg-card);backdrop-filter:blur(12px);
+  border:1px solid var(--border);border-radius:16px;
+  padding:24px;transition:all 0.2s ease;
+}
+.history-item:hover{box-shadow:var(--shadow-md)}
+.history-item-header{
+  display:flex;align-items:center;justify-content:space-between;
+  margin-bottom:16px;flex-wrap:wrap;gap:8px;
+}
+.history-item-name{font-weight:700;font-size:17px}
+.history-item-date{font-size:13px;color:var(--text-muted)}
+.history-badges{display:flex;gap:8px;flex-wrap:wrap}
+.badge{
+  padding:4px 12px;border-radius:99px;
+  font-size:12px;font-weight:700;
+}
+.badge-low{background:rgba(48,209,88,0.15);color:var(--accent-secondary)}
+.badge-medium{background:rgba(255,215,0,0.15);color:var(--accent-warn)}
+.badge-high{background:rgba(255,69,58,0.15);color:var(--accent-danger)}
+.badge-neutral{background:var(--border);color:var(--text-secondary)}
+.history-stats{
+  display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));
+  gap:12px;
+}
+.history-stat{
+  padding:12px;border-radius:10px;
+  background:var(--input-bg);text-align:center;
+}
+.history-stat-value{font-weight:700;font-size:18px;margin-bottom:2px}
+.history-stat-label{font-size:11px;color:var(--text-muted)}
+.history-item-actions{
+  display:flex;gap:8px;margin-top:16px;
+  padding-top:16px;border-top:1px solid var(--border);
+}
+.btn-sm{
+  padding:7px 16px;border-radius:8px;font-size:13px;font-weight:600;
+  border:1px solid var(--border);background:var(--bg-glass);
+  color:var(--text-secondary);cursor:pointer;transition:all 0.2s ease;
+  display:flex;align-items:center;gap:6px;
+}
+.btn-sm:hover{background:var(--bg-card)}
+.btn-sm.danger:hover{background:rgba(255,69,58,0.1);border-color:var(--accent-danger);color:var(--accent-danger)}
+
+/* ============================================================
+   DISCLAIMER FOOTER
+   ============================================================ */
+.disclaimer{
+  text-align:center;padding:24px;margin-top:40px;
+  border-top:1px solid var(--border);
+  font-size:12px;color:var(--text-muted);
+  line-height:1.6;max-width:600px;margin-left:auto;margin-right:auto;
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast-container{position:fixed;bottom:24px;right:24px;z-index:9998;display:flex;flex-direction:column;gap:10px}
+.toast{
+  padding:14px 20px;border-radius:12px;
+  background:var(--bg-card);backdrop-filter:blur(20px);
+  border:1px solid var(--border);
+  color:var(--text-primary);font-size:14px;font-weight:500;
+  box-shadow:var(--shadow-lg);
+  display:flex;align-items:center;gap:10px;
+  animation:slideIn 0.3s ease;
+  max-width:320px;
+}
+.toast.success{border-color:rgba(48,209,88,0.3)}
+.toast.error{border-color:rgba(255,69,58,0.3)}
+@keyframes slideIn{from{opacity:0;transform:translateX(40px)}to{opacity:1;transform:translateX(0)}}
+@keyframes slideOut{from{opacity:1;transform:translateX(0)}to{opacity:0;transform:translateX(40px)}}
+
+/* ============================================================
+   PROGRESS STEPS
+   ============================================================ */
+.form-steps{
+  display:flex;align-items:center;margin-bottom:36px;
+  position:relative;
+}
+.form-step{
+  flex:1;display:flex;flex-direction:column;align-items:center;gap:8px;
+  position:relative;cursor:default;
+}
+.form-step::before{
+  content:'';position:absolute;top:16px;left:50%;right:-50%;height:2px;
+  background:var(--border);z-index:0;
+}
+.form-step:last-child::before{display:none}
+.form-step-circle{
+  width:32px;height:32px;border-radius:50%;
+  border:2px solid var(--border);
+  background:var(--bg-card);
+  display:flex;align-items:center;justify-content:center;
+  font-size:13px;font-weight:700;color:var(--text-muted);
+  position:relative;z-index:1;
+  transition:all 0.3s ease;
+}
+.form-step.done .form-step-circle{
+  background:var(--accent-secondary);border-color:var(--accent-secondary);color:#fff;
+}
+.form-step.active .form-step-circle{
+  background:var(--accent-primary);border-color:var(--accent-primary);color:#fff;
+  box-shadow:0 0 0 4px rgba(10,132,255,0.2);
+}
+.form-step-label{font-size:11px;font-weight:600;color:var(--text-muted);text-align:center}
+.form-step.active .form-step-label{color:var(--accent-primary)}
+
+/* ============================================================
+   ANALYZING OVERLAY
+   ============================================================ */
+.analyzing-overlay{
+  display:none;position:fixed;inset:0;z-index:500;
+  background:rgba(8,12,20,0.85);backdrop-filter:blur(12px);
+  align-items:center;justify-content:center;flex-direction:column;gap:24px;
+}
+.analyzing-overlay.show{display:flex}
+.analyzing-pulse{
+  width:80px;height:80px;border-radius:50%;
+  background:rgba(10,132,255,0.15);
+  display:flex;align-items:center;justify-content:center;
+  font-size:36px;
+  animation:analyzePulse 1.5s ease infinite;
+}
+@keyframes analyzePulse{
+  0%,100%{transform:scale(1);box-shadow:0 0 0 0 rgba(10,132,255,0.4)}
+  50%{transform:scale(1.05);box-shadow:0 0 0 20px rgba(10,132,255,0)}
+}
+.analyzing-text{
+  font-family:var(--font-display);font-size:24px;color:#fff;text-align:center;
+}
+.analyzing-subtext{font-size:14px;color:rgba(255,255,255,0.5)}
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media(max-width:900px){
+  .card-risk-meter,.card-bmi{grid-column:span 6}
+  .card-overview,.card-summary{grid-column:span 6}
+  .overview-grid{grid-template-columns:repeat(2,1fr)}
+}
+@media(max-width:680px){
+  .card-risk-meter,.card-bmi,.card-overview,.card-summary,.card-recs,.card-tips{grid-column:span 12}
+  .hamburger{display:flex}
+  .nav-links{
+    display:none;position:absolute;top:64px;left:0;right:0;
+    background:var(--nav-bg);backdrop-filter:blur(20px);
+    border-bottom:1px solid var(--border);padding:12px;
+    flex-direction:column;gap:4px;
+  }
+  .nav-links.open{display:flex}
+  .nav-link{width:100%;text-align:left}
+  .form-card{padding:24px 20px}
+  .overview-grid{grid-template-columns:repeat(3,1fr)}
+}
+@media(max-width:440px){
+  .overview-grid{grid-template-columns:1fr}
+  .results-actions{width:100%}
+  .btn-action{flex:1;justify-content:center}
+}
+</style>
+</head>
+<body>
+
+<!-- LOADING SCREEN -->
+<div id="loader">
+  <div class="loader-heart">
+    <svg viewBox="0 0 64 64" fill="none">
+      <path d="M32 54s-26-16-26-34a14 14 0 0 1 26-7.2A14 14 0 0 1 58 20c0 18-26 34-26 34z"
+        fill="url(#hg)" stroke="none"/>
+      <defs>
+        <linearGradient id="hg" x1="6" y1="6" x2="58" y2="58" gradientUnits="userSpaceOnUse">
+          <stop stop-color="#ff6961"/>
+          <stop offset="1" stop-color="#ff3b30"/>
+        </linearGradient>
+      </defs>
+    </svg>
+  </div>
+  <div class="loader-bar"><div class="loader-bar-fill"></div></div>
+  <div class="loader-text">Initializing Health AI Engine…</div>
+</div>
+
+<!-- BACKGROUND -->
+<div class="bg-mesh"></div>
+<div class="bg-mesh-extra"></div>
+
+<!-- ANALYZING OVERLAY -->
+<div class="analyzing-overlay" id="analyzingOverlay">
+  <div class="analyzing-pulse">🧬</div>
+  <div class="analyzing-text">Analyzing Your Health Data</div>
+  <div class="analyzing-subtext">AI engine processing your profile…</div>
+</div>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- NAV -->
+<nav>
+  <a class="nav-logo" href="#" onclick="navigate('hero');return false">
+    <div class="nav-logo-icon">❤️</div>
+    Health Risk AI
+  </a>
+  <div class="nav-links" id="navLinks">
+    <button class="nav-link active" onclick="navigate('hero')" id="nav-hero">Home</button>
+    <button class="nav-link" onclick="navigate('assessment')" id="nav-assessment">Assessment</button>
+    <button class="nav-link" onclick="navigate('results')" id="nav-results">Results</button>
+    <button class="nav-link" onclick="navigate('history')" id="nav-history">History</button>
+  </div>
+  <div class="nav-actions">
+    <button class="btn-theme" id="themeToggle" onclick="toggleTheme()" title="Toggle theme">🌙</button>
+    <button class="hamburger" id="hamburger" onclick="toggleMenu()">
+      <span></span><span></span><span></span>
+    </button>
+  </div>
+</nav>
+
+<!-- WRAPPER -->
+<div class="wrapper">
+
+  <!-- ==================== HERO ==================== -->
+  <section id="hero" class="active">
+    <div class="container hero-content">
+      <div class="hero-badge">
+        <div class="hero-badge-dot"></div>
+        AI-Powered Health Intelligence Platform
+      </div>
+      <h1 class="hero-title">
+        Know Your<br><span>Health Risks</span><br>Before They Know You
+      </h1>
+      <p class="hero-subtitle">
+        Get a personalized health risk assessment powered by AI. Enter your health profile and receive instant, actionable insights — no doctor's appointment required.
+      </p>
+      <div class="hero-actions">
+        <button class="btn-primary" onclick="navigate('assessment')">
+          🚀 Start Assessment
+        </button>
+        <button class="btn-secondary" onclick="navigate('history')">
+          📊 View History
+        </button>
+      </div>
+
+      <div class="hero-stats">
+        <div class="hero-stat">
+          <div class="hero-stat-value">10+</div>
+          <div class="hero-stat-label">Health Metrics Analyzed</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value">3</div>
+          <div class="hero-stat-label">Risk Level Categories</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value">100%</div>
+          <div class="hero-stat-label">Private & Secure</div>
+        </div>
+        <div class="hero-stat">
+          <div class="hero-stat-value">AI</div>
+          <div class="hero-stat-label">Personalized Recommendations</div>
+        </div>
+      </div>
+
+      <div class="hero-features">
+        <div class="hero-feature">
+          <div class="hero-feature-icon">🧬</div>
+          <div class="hero-feature-title">Smart Analysis</div>
+          <div class="hero-feature-desc">Multi-factor AI engine evaluates your complete health profile</div>
+        </div>
+        <div class="hero-feature">
+          <div class="hero-feature-icon">📈</div>
+          <div class="hero-feature-title">Risk Visualization</div>
+          <div class="hero-feature-desc">Interactive charts and meters show your health score clearly</div>
+        </div>
+        <div class="hero-feature">
+          <div class="hero-feature-icon">💡</div>
+          <div class="hero-feature-title">Personalized Tips</div>
+          <div class="hero-feature-desc">Tailored recommendations based on your unique health data</div>
+        </div>
+        <div class="hero-feature">
+          <div class="hero-feature-icon">📋</div>
+          <div class="hero-feature-title">History Tracking</div>
+          <div class="hero-feature-desc">Track your progress over time with stored assessments</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== ASSESSMENT ==================== -->
+  <section id="assessment">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Step-by-Step</div>
+        <h2 class="section-title">Your Health Assessment</h2>
+        <p class="section-subtitle">Fill in the form below to receive your personalized health risk report.</p>
+      </div>
+
+      <!-- Emergency Alert -->
+      <div class="alert-banner" id="emergencyAlert">
+        <div class="alert-icon">🚨</div>
+        <div>Your assessment indicates elevated health risks. Consider consulting a healthcare professional promptly.</div>
+      </div>
+
+      <div class="form-card">
+        <!-- Steps -->
+        <div class="form-steps">
+          <div class="form-step active" id="step1">
+            <div class="form-step-circle">1</div>
+            <div class="form-step-label">Personal</div>
+          </div>
+          <div class="form-step" id="step2">
+            <div class="form-step-circle">2</div>
+            <div class="form-step-label">Health</div>
+          </div>
+          <div class="form-step" id="step3">
+            <div class="form-step-circle">3</div>
+            <div class="form-step-label">Lifestyle</div>
+          </div>
+        </div>
+
+        <!-- PERSONAL -->
+        <div class="form-section-title">👤 Personal Information</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Full Name <span class="req">*</span></label>
+            <input type="text" class="form-input" id="userName" placeholder="e.g. Alex Johnson">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Age <span class="req">*</span></label>
+            <input type="number" class="form-input" id="userAge" placeholder="e.g. 35" min="1" max="120">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Gender <span class="req">*</span></label>
+            <select class="form-select" id="userGender">
+              <option value="">Select gender</option>
+              <option value="male">Male</option>
+              <option value="female">Female</option>
+              <option value="other">Other / Prefer not to say</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- HEALTH -->
+        <div class="form-section-title">🩺 Health Information</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Height (cm) <span class="req">*</span></label>
+            <input type="number" class="form-input" id="userHeight" placeholder="e.g. 170" min="50" max="250" oninput="calcBMI()">
+          </div>
+          <div class="form-group">
+            <label class="form-label">Weight (kg) <span class="req">*</span></label>
+            <input type="number" class="form-input" id="userWeight" placeholder="e.g. 70" min="1" max="500" oninput="calcBMI()">
+          </div>
+        </div>
+        <!-- BMI Display -->
+        <div class="bmi-display" id="bmiDisplay" style="margin-bottom:32px">
+          <div>
+            <div style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:4px">Auto BMI</div>
+            <div class="bmi-value" id="bmiValue">—</div>
+          </div>
+          <div>
+            <div style="font-size:12px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:var(--text-muted);margin-bottom:8px">Category</div>
+            <div class="bmi-category" id="bmiCategory">Enter height & weight</div>
+          </div>
+        </div>
+
+        <!-- LIFESTYLE -->
+        <div class="form-section-title">🏃 Lifestyle Information</div>
+        <div class="toggle-grid" id="toggleGrid">
+          <div class="toggle-item" id="toggle-smoking" onclick="toggleItem('smoking')">
+            <div class="toggle-label-wrap">
+              <div class="toggle-label">🚬 Smoking</div>
+              <div class="toggle-sublabel">Currently a smoker?</div>
+            </div>
+            <div class="toggle-switch"></div>
+          </div>
+          <div class="toggle-item" id="toggle-alcohol" onclick="toggleItem('alcohol')">
+            <div class="toggle-label-wrap">
+              <div class="toggle-label">🍺 Alcohol</div>
+              <div class="toggle-sublabel">Regular consumption?</div>
+            </div>
+            <div class="toggle-switch"></div>
+          </div>
+          <div class="toggle-item" id="toggle-exercise" onclick="toggleItem('exercise')">
+            <div class="toggle-label-wrap">
+              <div class="toggle-label">💪 Exercise</div>
+              <div class="toggle-sublabel">Exercise regularly?</div>
+            </div>
+            <div class="toggle-switch"></div>
+          </div>
+        </div>
+
+        <!-- Sleep -->
+        <div class="form-grid">
+          <div class="form-group range-group">
+            <div class="range-header">
+              <label class="form-label">😴 Sleep Hours / Day</label>
+              <div class="range-value" id="sleepVal">7 hrs</div>
+            </div>
+            <input type="range" class="form-range" id="sleepHours" min="2" max="12" value="7" oninput="document.getElementById('sleepVal').textContent=this.value+' hrs'">
+            <div class="range-labels"><span>2 hrs</span><span>7 hrs</span><span>12 hrs</span></div>
+          </div>
+          <div class="form-group range-group">
+            <div class="range-header">
+              <label class="form-label">💧 Water Intake / Day</label>
+              <div class="range-value" id="waterVal">2.0 L</div>
+            </div>
+            <input type="range" class="form-range" id="waterIntake" min="0.5" max="5" step="0.5" value="2" oninput="document.getElementById('waterVal').textContent=parseFloat(this.value).toFixed(1)+' L'">
+            <div class="range-labels"><span>0.5 L</span><span>2.5 L</span><span>5 L</span></div>
+          </div>
+        </div>
+
+        <!-- Conditions -->
+        <div class="form-group" style="margin-bottom:32px">
+          <label class="form-label">🏥 Existing Health Conditions <span style="color:var(--text-muted);font-weight:400">(optional)</span></label>
+          <textarea class="form-textarea" id="healthConditions" placeholder="e.g. Diabetes, Hypertension, Asthma…"></textarea>
+        </div>
+
+        <!-- Actions -->
+        <div class="form-actions">
+          <button class="btn-submit" onclick="runAssessment()">
+            🧬 Run AI Assessment
+          </button>
+          <button class="btn-reset" onclick="resetForm()">↺ Reset</button>
+        </div>
+      </div>
+
+      <div class="disclaimer">
+        ⚕️ This application is for educational purposes only and does not provide medical diagnosis, treatment, or professional healthcare advice. Always consult a qualified healthcare professional.
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== RESULTS ==================== -->
+  <section id="results">
+    <div class="container">
+      <div class="results-header">
+        <div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:6px;font-weight:500">Assessment Report for</div>
+          <h2 class="results-title" id="resultName">—</h2>
+        </div>
+        <div class="results-actions">
+          <button class="btn-action" onclick="exportJSON()">📦 Export JSON</button>
+          <button class="btn-action" onclick="downloadPDF()">📄 Download PDF</button>
+          <button class="btn-action primary" onclick="navigate('assessment')">+ New Assessment</button>
+        </div>
+      </div>
+
+      <!-- Emergency alert in results -->
+      <div class="alert-banner" id="resultAlert" style="margin-bottom:24px"></div>
+
+      <div class="results-grid">
+
+        <!-- Risk Meter -->
+        <div class="card card-risk-meter">
+          <div class="card-label">Risk Score</div>
+          <div class="meter-wrap">
+            <svg class="meter-svg" viewBox="0 0 180 180" id="meterSvg">
+              <circle cx="90" cy="90" r="72" fill="none" stroke="var(--border)" stroke-width="14" stroke-linecap="round"/>
+              <circle cx="90" cy="90" r="72" fill="none" stroke="url(#meterGrad)" stroke-width="14"
+                stroke-linecap="round" stroke-dasharray="452" stroke-dashoffset="452"
+                id="meterArc" transform="rotate(-90 90 90)" style="transition:stroke-dashoffset 1.2s cubic-bezier(.34,1.56,.64,1)"/>
+              <defs>
+                <linearGradient id="meterGrad" x1="0%" y1="0%" x2="100%" y2="0%">
+                  <stop offset="0%" stop-color="var(--accent-secondary)"/>
+                  <stop offset="50%" stop-color="var(--accent-warn)"/>
+                  <stop offset="100%" stop-color="var(--accent-danger)"/>
+                </linearGradient>
+              </defs>
+              <text x="90" y="84" text-anchor="middle" font-family="DM Serif Display,serif" font-size="36" fill="var(--text-primary)" id="meterNum">0</text>
+              <text x="90" y="108" text-anchor="middle" font-size="13" font-weight="600" fill="var(--text-muted)" font-family="Outfit,sans-serif">/ 11 pts</text>
+            </svg>
+            <div class="meter-label low" id="meterLabel">Low Risk 🟢</div>
+          </div>
+        </div>
+
+        <!-- Overview -->
+        <div class="card card-overview">
+          <div class="card-label">Profile Overview</div>
+          <div class="overview-grid" id="overviewGrid">
+            <div class="overview-stat"><div class="overview-stat-value" id="ov-age">—</div><div class="overview-stat-label">Age</div></div>
+            <div class="overview-stat"><div class="overview-stat-value" id="ov-gender">—</div><div class="overview-stat-label">Gender</div></div>
+            <div class="overview-stat"><div class="overview-stat-value" id="ov-score">—</div><div class="overview-stat-label">Risk Score</div></div>
+            <div class="overview-stat"><div class="overview-stat-value" id="ov-smoking">—</div><div class="overview-stat-label">Smoking</div></div>
+            <div class="overview-stat"><div class="overview-stat-value" id="ov-exercise">—</div><div class="overview-stat-label">Exercise</div></div>
+            <div class="overview-stat"><div class="overview-stat-value" id="ov-sleep">—</div><div class="overview-stat-label">Sleep</div></div>
+          </div>
+        </div>
+
+        <!-- BMI Card -->
+        <div class="card card-bmi">
+          <div class="card-label">BMI Analysis</div>
+          <div class="bmi-meter">
+            <div class="bmi-big-value" id="res-bmi">—</div>
+            <div class="bmi-cat-badge normal" id="res-bmi-cat">—</div>
+            <div class="bmi-bar-wrap">
+              <div class="bmi-bar">
+                <div class="bmi-indicator" id="bmiIndicator" style="left:30%"></div>
+              </div>
+              <div class="bmi-bar-labels">
+                <span>Under</span><span>Normal</span><span>Over</span><span>Obese</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="card card-summary">
+          <div class="card-label">Health Summary</div>
+          <div class="summary-text" id="resSummary">—</div>
+        </div>
+
+        <!-- Recommendations -->
+        <div class="card card-recs">
+          <div class="card-label">Personalized Recommendations</div>
+          <div class="recs-grid" id="recsGrid"></div>
+        </div>
+
+        <!-- Tips -->
+        <div class="card card-tips">
+          <div class="card-label">Daily Health Tips</div>
+          <div class="tips-grid" id="tipsGrid"></div>
+        </div>
+
+      </div>
+
+      <div class="disclaimer">
+        ⚕️ This application is for educational purposes only and does not provide medical diagnosis, treatment, or professional healthcare advice. Always consult a qualified healthcare professional.
+      </div>
+    </div>
+  </section>
+
+  <!-- ==================== HISTORY ==================== -->
+  <section id="history">
+    <div class="container">
+      <div class="section-header">
+        <div class="section-tag">Records</div>
+        <h2 class="section-title">Assessment History</h2>
+        <p class="section-subtitle">Review your previous health assessments and track your progress over time.</p>
+      </div>
+
+      <div class="history-controls">
+        <button class="btn-action" onclick="exportAllJSON()">📦 Export All JSON</button>
+        <button class="btn-action" onclick="clearHistory()" style="color:var(--accent-danger);border-color:rgba(255,69,58,0.3)">🗑️ Clear All</button>
+      </div>
+
+      <div id="historyList"></div>
+    </div>
+  </section>
+
+</div><!-- /wrapper -->
+
+<script>
+/* ============================================================
+   STATE & DATA
+   ============================================================ */
+let currentTheme = localStorage.getItem('theme') || 'dark';
+let toggleStates = { smoking: false, alcohol: false, exercise: false };
+let currentResult = null;
+
+const HEALTH_TIPS = [
+  { icon: '💧', text: 'Drink at least 8 glasses of water daily to stay hydrated.' },
+  { icon: '🚶', text: 'Walk at least 30 minutes every day to boost cardiovascular health.' },
+  { icon: '😴', text: 'Aim for 7–9 hours of quality sleep each night for optimal recovery.' },
+  { icon: '🥦', text: 'Eat more fruits and vegetables — at least 5 servings per day.' },
+  { icon: '🧘', text: 'Practice mindfulness or meditation for 10 minutes daily to reduce stress.' },
+  { icon: '🏋️', text: 'Strength train 2–3 times a week to maintain muscle mass and bone density.' },
+  { icon: '☀️', text: 'Get 15–20 minutes of sunlight daily to boost Vitamin D levels.' },
+  { icon: '🫁', text: 'Practice deep breathing exercises to improve lung capacity and reduce anxiety.' },
+  { icon: '🚭', text: 'Quit smoking — your risk of heart disease drops by 50% within one year.' },
+  { icon: '🩺', text: 'Schedule annual health check-ups even when you feel perfectly well.' },
+  { icon: '🧂', text: 'Reduce sodium intake to keep blood pressure in a healthy range.' },
+  { icon: '📵', text: 'Limit screen time before bed to improve sleep quality naturally.' },
+];
+
+const RECS = {
+  low: [
+    { icon: '✅', title: 'Maintain Your Habits', text: 'You\'re doing great! Keep maintaining your healthy lifestyle choices.' },
+    { icon: '🏃', title: 'Stay Active', text: 'Continue exercising regularly — at least 150 minutes of moderate activity weekly.' },
+    { icon: '🥗', title: 'Balanced Nutrition', text: 'Keep eating a varied diet rich in whole foods, fiber, and lean proteins.' },
+    { icon: '🩺', title: 'Regular Check-ups', text: 'Continue scheduling annual health screenings to catch changes early.' },
+    { icon: '🧠', title: 'Mental Wellness', text: 'Prioritize mental health with regular social connection and stress management.' },
+    { icon: '😴', title: 'Quality Sleep', text: 'Protect your sleep schedule — it\'s the foundation of all other health pillars.' },
+  ],
+  medium: [
+    { icon: '😴', title: 'Improve Sleep Habits', text: 'Aim for 7–8 hours per night. Create a consistent sleep schedule and wind-down routine.' },
+    { icon: '💪', title: 'Exercise More', text: 'Increase physical activity to at least 30 minutes of moderate exercise 5 days a week.' },
+    { icon: '🥗', title: 'Balanced Diet', text: 'Reduce processed foods and increase vegetables, fruits, whole grains, and lean proteins.' },
+    { icon: '💧', title: 'Hydration', text: 'Drink at least 2–2.5 liters of water daily. Limit sugary drinks and excessive caffeine.' },
+    { icon: '📊', title: 'Monitor Vitals', text: 'Track your blood pressure, blood sugar, and cholesterol with regular check-ups.' },
+    { icon: '🧘', title: 'Stress Management', text: 'Reduce chronic stress through mindfulness, yoga, or regular leisure activities.' },
+  ],
+  high: [
+    { icon: '🚭', title: 'Quit Smoking Urgently', text: 'Smoking is the leading preventable cause of disease. Seek cessation support programs now.' },
+    { icon: '🍺', title: 'Reduce Alcohol', text: 'Limit or eliminate alcohol consumption. Seek professional help if needed.' },
+    { icon: '🏥', title: 'See a Doctor', text: 'Consult a healthcare professional as soon as possible for a comprehensive health evaluation.' },
+    { icon: '🏃', title: 'Start Moving', text: 'Begin with short walks and gradually increase activity. Even 10 minutes helps.' },
+    { icon: '⚖️', title: 'Weight Management', text: 'Work with a dietitian to create a sustainable weight loss plan if BMI is elevated.' },
+    { icon: '💊', title: 'Medication Review', text: 'Review any existing conditions and medications with your physician regularly.' },
+  ]
+};
+
+/* ============================================================
+   INIT
+   ============================================================ */
+document.addEventListener('DOMContentLoaded', () => {
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  updateThemeIcon();
+  setTimeout(() => {
+    document.getElementById('loader').classList.add('hidden');
+  }, 2000);
+  renderHistory();
+});
+
+/* ============================================================
+   THEME
+   ============================================================ */
+function toggleTheme() {
+  currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+  document.documentElement.setAttribute('data-theme', currentTheme);
+  localStorage.setItem('theme', currentTheme);
+  updateThemeIcon();
+}
+function updateThemeIcon() {
+  document.getElementById('themeToggle').textContent = currentTheme === 'dark' ? '☀️' : '🌙';
+}
+
+/* ============================================================
+   NAVIGATION
+   ============================================================ */
+function navigate(id) {
+  document.querySelectorAll('section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
+  const sec = document.getElementById(id);
+  if (sec) { sec.classList.add('active'); sec.style.display = ''; }
+  const nav = document.getElementById('nav-' + id);
+  if (nav) nav.classList.add('active');
+  document.getElementById('navLinks').classList.remove('open');
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+  if (id === 'history') renderHistory();
+}
+
+function toggleMenu() {
+  document.getElementById('navLinks').classList.toggle('open');
+}
+
+/* ============================================================
+   BMI
+   ============================================================ */
+function calcBMI() {
+  const h = parseFloat(document.getElementById('userHeight').value);
+  const w = parseFloat(document.getElementById('userWeight').value);
+  const el = document.getElementById('bmiValue');
+  const cat = document.getElementById('bmiCategory');
+  if (!h || !w || h < 50 || w < 1) { el.textContent = '—'; cat.textContent = 'Enter height & weight'; cat.className = 'bmi-category'; return null; }
+  const bmi = (w / ((h / 100) ** 2)).toFixed(1);
+  el.textContent = bmi;
+  const { label, cls } = getBMIInfo(parseFloat(bmi));
+  cat.textContent = label;
+  cat.className = 'bmi-category ' + cls;
+  return parseFloat(bmi);
+}
+
+function getBMIInfo(bmi) {
+  if (bmi < 18.5) return { label: 'Underweight', cls: 'underweight' };
+  if (bmi < 25) return { label: 'Normal', cls: 'normal' };
+  if (bmi < 30) return { label: 'Overweight', cls: 'overweight' };
+  return { label: 'Obese', cls: 'obese' };
+}
+
+/* ============================================================
+   TOGGLE ITEMS
+   ============================================================ */
+function toggleItem(key) {
+  toggleStates[key] = !toggleStates[key];
+  const el = document.getElementById('toggle-' + key);
+  if (toggleStates[key]) el.classList.add('checked');
+  else el.classList.remove('checked');
+  checkEmergency();
+}
+
+/* ============================================================
+   EMERGENCY CHECK
+   ============================================================ */
+function checkEmergency() {
+  const bmi = calcBMI();
+  const isEmergency = toggleStates.smoking && !toggleStates.exercise && bmi && bmi > 35;
+  const alert = document.getElementById('emergencyAlert');
+  if (isEmergency) alert.classList.add('show');
+  else alert.classList.remove('show');
+}
+
+/* ============================================================
+   ASSESSMENT ENGINE
+   ============================================================ */
+function runAssessment() {
+  const name = document.getElementById('userName').value.trim();
+  const age = parseInt(document.getElementById('userAge').value);
+  const gender = document.getElementById('userGender').value;
+  const height = parseFloat(document.getElementById('userHeight').value);
+  const weight = parseFloat(document.getElementById('userWeight').value);
+
+  if (!name || !age || !gender || !height || !weight) {
+    showToast('⚠️ Please fill in all required fields.', 'error'); return;
+  }
+  if (age < 1 || age > 120) { showToast('⚠️ Enter a valid age (1–120).', 'error'); return; }
+
+  const bmi = parseFloat((weight / ((height / 100) ** 2)).toFixed(1));
+  const sleep = parseFloat(document.getElementById('sleepHours').value);
+  const water = parseFloat(document.getElementById('waterIntake').value);
+  const conditions = document.getElementById('healthConditions').value.trim();
+
+  // Score Engine
+  let score = 0;
+  const factors = [];
+  if (age > 50) { score += 2; factors.push({ f: 'Age > 50', pts: +2 }); }
+  if (toggleStates.smoking) { score += 3; factors.push({ f: 'Smoking', pts: +3 }); }
+  if (!toggleStates.exercise) { score += 2; factors.push({ f: 'No Exercise', pts: +2 }); }
+  if (sleep < 6) { score += 1; factors.push({ f: 'Sleep < 6 hrs', pts: +1 }); }
+  if (bmi > 30) { score += 2; factors.push({ f: 'BMI > 30', pts: +2 }); }
+  if (water < 2) { score += 1; factors.push({ f: 'Water < 2 L', pts: +1 }); }
+
+  let risk = 'low', riskLabel = 'Low Risk 🟢';
+  if (score >= 6) { risk = 'high'; riskLabel = 'High Risk 🔴'; }
+  else if (score >= 3) { risk = 'medium'; riskLabel = 'Medium Risk 🟡'; }
+
+  // Emergency check for results page
+  const isEmergency = toggleStates.smoking && !toggleStates.exercise && bmi > 35;
+
+  const result = {
+    id: Date.now(),
+    date: new Date().toLocaleDateString('en-US', { year:'numeric', month:'long', day:'numeric', hour:'2-digit', minute:'2-digit' }),
+    name, age, gender, height, weight, bmi,
+    smoking: toggleStates.smoking, alcohol: toggleStates.alcohol, exercise: toggleStates.exercise,
+    sleep, water, conditions, score, risk, riskLabel, factors, isEmergency
+  };
+
+  currentResult = result;
+  saveToHistory(result);
+
+  // Show analyzing overlay
+  document.getElementById('analyzingOverlay').classList.add('show');
+  setTimeout(() => {
+    document.getElementById('analyzingOverlay').classList.remove('show');
+    renderResults(result);
+    navigate('results');
+    showToast('✅ Assessment complete!', 'success');
+  }, 2200);
+}
+
+/* ============================================================
+   RENDER RESULTS
+   ============================================================ */
+function renderResults(r) {
+  document.getElementById('resultName').textContent = r.name;
+
+  // Emergency alert
+  const ra = document.getElementById('resultAlert');
+  if (r.isEmergency) {
+    ra.innerHTML = '<div class="alert-icon">🚨</div><div>Your assessment indicates elevated health risks. Consider consulting a healthcare professional promptly.</div>';
+    ra.classList.add('show');
+  } else { ra.classList.remove('show'); }
+
+  // Risk meter
+  const maxScore = 11;
+  const pct = Math.min(r.score / maxScore, 1);
+  const circumference = 2 * Math.PI * 72;
+  document.getElementById('meterArc').style.strokeDashoffset = circumference * (1 - pct);
+  document.getElementById('meterNum').textContent = r.score;
+  const ml = document.getElementById('meterLabel');
+  ml.textContent = r.riskLabel;
+  ml.className = 'meter-label ' + r.risk;
+
+  // Overview
+  document.getElementById('ov-age').textContent = r.age + ' yrs';
+  document.getElementById('ov-gender').textContent = r.gender.charAt(0).toUpperCase() + r.gender.slice(1);
+  document.getElementById('ov-score').textContent = r.score + '/11';
+  document.getElementById('ov-smoking').textContent = r.smoking ? '🚬 Yes' : '✅ No';
+  document.getElementById('ov-exercise').textContent = r.exercise ? '✅ Yes' : '❌ No';
+  document.getElementById('ov-sleep').textContent = r.sleep + ' hrs';
+
+  // BMI
+  document.getElementById('res-bmi').textContent = r.bmi;
+  const { label, cls } = getBMIInfo(r.bmi);
+  const bmiCat = document.getElementById('res-bmi-cat');
+  bmiCat.textContent = label;
+  bmiCat.className = 'bmi-cat-badge ' + cls;
+  // Position indicator
+  let bmiPct = 0;
+  if (r.bmi < 18.5) bmiPct = (r.bmi / 18.5) * 0.25;
+  else if (r.bmi < 25) bmiPct = 0.25 + ((r.bmi - 18.5) / 6.5) * 0.25;
+  else if (r.bmi < 30) bmiPct = 0.5 + ((r.bmi - 25) / 5) * 0.25;
+  else bmiPct = 0.75 + Math.min((r.bmi - 30) / 10, 1) * 0.25;
+  setTimeout(() => {
+    document.getElementById('bmiIndicator').style.left = (bmiPct * 100).toFixed(1) + '%';
+  }, 100);
+
+  // Summary
+  const summaries = {
+    low: `${r.name}, your health profile looks good! With a BMI of ${r.bmi} (${label}), age ${r.age}, and a risk score of ${r.score}/11, you are in the low-risk category. ${r.exercise ? 'Your regular exercise habit is a major positive factor.' : ''} ${r.sleep >= 7 ? 'Your sleep pattern is healthy.' : 'Consider improving sleep duration.'} ${r.smoking ? 'Quitting smoking would further reduce your risk.' : ''} Keep up the great work!`,
+    medium: `${r.name}, your health assessment shows moderate risk with a score of ${r.score}/11. Your BMI is ${r.bmi} (${label}). ${r.smoking ? 'Smoking is significantly contributing to your risk score.' : ''} ${!r.exercise ? 'Adding regular exercise would make a major positive impact.' : ''} ${r.sleep < 6 ? 'Your sleep duration is below the recommended level.' : ''} ${r.water < 2 ? 'Increasing daily water intake would help.' : ''} With targeted lifestyle changes, you can significantly improve your health risk profile.`,
+    high: `${r.name}, your health profile indicates high risk with a score of ${r.score}/11. Immediate lifestyle changes are strongly recommended. Your BMI of ${r.bmi} (${label}) ${r.bmi > 30 ? 'falls in an elevated range.' : ''} ${r.smoking ? 'Smoking is the single largest risk factor you can address immediately.' : ''} ${!r.exercise ? 'Starting a regular exercise routine is critical.' : ''} Please consult a qualified healthcare professional for a comprehensive evaluation and personalized medical advice.`
+  };
+  document.getElementById('resSummary').textContent = summaries[r.risk];
+
+  // Recommendations
+  const recs = RECS[r.risk];
+  document.getElementById('recsGrid').innerHTML = recs.map((rec, i) => `
+    <div class="rec-item" style="animation:fadeUp 0.5s ease ${i * 0.08}s both">
+      <div class="rec-icon">${rec.icon}</div>
+      <div class="rec-text"><strong>${rec.title}</strong>${rec.text}</div>
+    </div>
+  `).join('');
+
+  // Tips (random 6)
+  const shuffled = [...HEALTH_TIPS].sort(() => Math.random() - 0.5).slice(0, 6);
+  document.getElementById('tipsGrid').innerHTML = shuffled.map((tip, i) => `
+    <div class="tip-item" style="animation-delay:${i*0.08}s">
+      <div class="tip-icon">${tip.icon}</div>
+      <div class="tip-text">${tip.text}</div>
+    </div>
+  `).join('');
+
+  // Update step indicators
+  document.getElementById('step1').classList.add('done'); document.getElementById('step1').classList.remove('active');
+  document.getElementById('step2').classList.add('done'); document.getElementById('step2').classList.remove('active');
+  document.getElementById('step3').classList.add('done'); document.getElementById('step3').classList.remove('active');
+}
+
+/* ============================================================
+   HISTORY
+   ============================================================ */
+function saveToHistory(result) {
+  const history = getHistory();
+  history.unshift(result);
+  if (history.length > 20) history.pop();
+  localStorage.setItem('hra_history', JSON.stringify(history));
+}
+
+function getHistory() {
+  try { return JSON.parse(localStorage.getItem('hra_history') || '[]'); }
+  catch { return []; }
+}
+
+function renderHistory() {
+  const history = getHistory();
+  const el = document.getElementById('historyList');
+  if (!history.length) {
+    el.innerHTML = `<div class="history-empty"><div class="history-empty-icon">📋</div><div style="font-size:17px;font-weight:600;margin-bottom:8px">No assessments yet</div><div style="font-size:14px;color:var(--text-muted)">Complete your first health assessment to see history here.</div><button class="btn-primary" style="margin-top:20px" onclick="navigate('assessment')">Start Assessment</button></div>`;
+    return;
+  }
+  el.innerHTML = history.map((r, i) => `
+    <div class="history-item" id="hitem-${r.id}">
+      <div class="history-item-header">
+        <div>
+          <div class="history-item-name">${r.name}</div>
+          <div class="history-item-date">🗓️ ${r.date}</div>
+        </div>
+        <div class="history-badges">
+          <span class="badge badge-${r.risk}">${r.riskLabel}</span>
+          <span class="badge badge-neutral">Score: ${r.score}/11</span>
+        </div>
+      </div>
+      <div class="history-stats">
+        <div class="history-stat"><div class="history-stat-value">${r.age}</div><div class="history-stat-label">Age</div></div>
+        <div class="history-stat"><div class="history-stat-value">${r.bmi}</div><div class="history-stat-label">BMI</div></div>
+        <div class="history-stat"><div class="history-stat-value">${r.smoking ? '🚬' : '✅'}</div><div class="history-stat-label">Smoking</div></div>
+        <div class="history-stat"><div class="history-stat-value">${r.exercise ? '✅' : '❌'}</div><div class="history-stat-label">Exercise</div></div>
+        <div class="history-stat"><div class="history-stat-value">${r.sleep}h</div><div class="history-stat-label">Sleep</div></div>
+        <div class="history-stat"><div class="history-stat-value">${r.water}L</div><div class="history-stat-label">Water</div></div>
+      </div>
+      <div class="history-item-actions">
+        <button class="btn-sm" onclick="loadResult(${i})">👁️ View Report</button>
+        <button class="btn-sm" onclick="exportSingleJSON(${i})">📦 Export</button>
+        <button class="btn-sm danger" onclick="deleteHistoryItem(${r.id})">🗑️ Delete</button>
+      </div>
+    </div>
+  `).join('');
+}
+
+function loadResult(index) {
+  const history = getHistory();
+  const r = history[index];
+  if (!r) return;
+  currentResult = r;
+  // Restore toggle states visually
+  toggleStates = { smoking: r.smoking, alcohol: r.alcohol, exercise: r.exercise };
+  renderResults(r);
+  navigate('results');
+}
+
+function deleteHistoryItem(id) {
+  let history = getHistory();
+  history = history.filter(r => r.id !== id);
+  localStorage.setItem('hra_history', JSON.stringify(history));
+  renderHistory();
+  showToast('🗑️ Record deleted.', 'success');
+}
+
+function clearHistory() {
+  if (!confirm('Delete all assessment history? This cannot be undone.')) return;
+  localStorage.removeItem('hra_history');
+  renderHistory();
+  showToast('🗑️ History cleared.', 'success');
+}
+
+/* ============================================================
+   EXPORT
+   ============================================================ */
+function exportJSON() {
+  if (!currentResult) { showToast('⚠️ No result to export.', 'error'); return; }
+  downloadJSON([currentResult], `hra-${currentResult.name.replace(/\s+/g,'-')}-${currentResult.id}.json`);
+  showToast('📦 Exported successfully!', 'success');
+}
+
+function exportAllJSON() {
+  const h = getHistory();
+  if (!h.length) { showToast('⚠️ No history to export.', 'error'); return; }
+  downloadJSON(h, `hra-all-history-${Date.now()}.json`);
+  showToast('📦 All history exported!', 'success');
+}
+
+function exportSingleJSON(index) {
+  const h = getHistory();
+  const r = h[index];
+  if (!r) return;
+  downloadJSON([r], `hra-${r.name.replace(/\s+/g,'-')}-${r.id}.json`);
+  showToast('📦 Exported!', 'success');
+}
+
+function downloadJSON(data, filename) {
+  const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function downloadPDF() {
+  if (!currentResult) { showToast('⚠️ No result to download.', 'error'); return; }
+  const r = currentResult;
+  const { label } = getBMIInfo(r.bmi);
+  const content = `
+HEALTH RISK ASSESSMENT REPORT
+==============================
+Generated: ${new Date().toLocaleString()}
+
+PATIENT PROFILE
+---------------
+Name:    ${r.name}
+Age:     ${r.age} years
+Gender:  ${r.gender}
+
+HEALTH METRICS
+--------------
+Height:  ${r.height} cm
+Weight:  ${r.weight} kg
+BMI:     ${r.bmi} (${label})
+
+LIFESTYLE FACTORS
+-----------------
+Smoking:  ${r.smoking ? 'Yes' : 'No'}
+Alcohol:  ${r.alcohol ? 'Yes' : 'No'}
+Exercise: ${r.exercise ? 'Yes' : 'No'}
+Sleep:    ${r.sleep} hours/day
+Water:    ${r.water} liters/day
+${r.conditions ? 'Conditions: ' + r.conditions : ''}
+
+RISK ASSESSMENT
+---------------
+Risk Score:     ${r.score} / 11
+Risk Category:  ${r.riskLabel}
+
+RISK FACTORS IDENTIFIED
+-----------------------
+${r.factors.map(f => `• ${f.f}: +${f.pts} pts`).join('\n') || '• No significant risk factors identified'}
+
+RECOMMENDATIONS
+---------------
+${RECS[r.risk].map((rec, i) => `${i+1}. ${rec.title}: ${rec.text}`).join('\n')}
+
+==============================
+DISCLAIMER: This report is for educational purposes only and does not constitute medical diagnosis, treatment, or professional healthcare advice. Always consult a qualified healthcare professional for medical guidance.
+  `;
+  const blob = new Blob([content], { type: 'text/plain' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `health-report-${r.name.replace(/\s+/g,'-')}.txt`;
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('📄 Report downloaded!', 'success');
+}
+
+/* ============================================================
+   RESET FORM
+   ============================================================ */
+function resetForm() {
+  document.getElementById('userName').value = '';
+  document.getElementById('userAge').value = '';
+  document.getElementById('userGender').value = '';
+  document.getElementById('userHeight').value = '';
+  document.getElementById('userWeight').value = '';
+  document.getElementById('sleepHours').value = 7;
+  document.getElementById('sleepVal').textContent = '7 hrs';
+  document.getElementById('waterIntake').value = 2;
+  document.getElementById('waterVal').textContent = '2.0 L';
+  document.getElementById('healthConditions').value = '';
+  document.getElementById('bmiValue').textContent = '—';
+  document.getElementById('bmiCategory').textContent = 'Enter height & weight';
+  document.getElementById('bmiCategory').className = 'bmi-category';
+  toggleStates = { smoking: false, alcohol: false, exercise: false };
+  ['smoking','alcohol','exercise'].forEach(k => document.getElementById('toggle-'+k).classList.remove('checked'));
+  document.getElementById('emergencyAlert').classList.remove('show');
+  document.getElementById('step1').classList.remove('done'); document.getElementById('step1').classList.add('active');
+  document.getElementById('step2').classList.remove('done','active');
+  document.getElementById('step3').classList.remove('done','active');
+  showToast('↺ Form reset.', 'success');
+}
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+function showToast(msg, type = 'success') {
+  const container = document.getElementById('toastContainer');
+  const toast = document.createElement('div');
+  toast.className = `toast ${type}`;
+  toast.textContent = msg;
+  container.appendChild(toast);
+  setTimeout(() => {
+    toast.style.animation = 'slideOut 0.3s ease forwards';
+    setTimeout(() => toast.remove(), 300);
+  }, 3000);
+}
+</script>
+</body>
+</html>
+  
